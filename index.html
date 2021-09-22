@@ -1,0 +1,189 @@
+<html>
+    <head>
+        <title>Hana</title>
+        <script src="src/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <style>
+            .text-wrapper {
+            white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <p> Current Updates on 9/22</p> 
+        <div id="table">
+            <div id="ai"></div>
+            <card v-for="(d,i) in cA"> 
+                <img style="width:64" src="lib/kintengu/Kintengu_00c.png"  v-on:click="clickOnAI(i)">
+             </card>
+             <div id="table">
+                <img style="width:64" :src="urls[cB]">
+                <card v-for ="(d,i) in cT"> 
+                    <img :src="urls[d]"  v-on:click="clickOnTable(i)">
+                 </card>
+            </div>
+            <div id="player">
+                <card v-for ="(d,i) in cP"> 
+                    <img :src="urls[d]"  v-on:click="clickOnPlayer(i)">
+                 </card>
+            </div>
+            <div id="player_score">
+                <card v-for ="(d,i) in sP"> 
+                    <img :src="urls[d]"  v-on:click="clickOnPoints(i)">
+                 </card>
+            </div>
+            <button v-on:click="reStart">Restart</button>
+            <div id = "log" class="text-wrapper"><p style="font-size: 9pt;">{{message}}</p></div>
+        </div>
+
+        <script>
+            function sleep(){
+                app.message +="\nProcessing..."
+            }
+            function ind_uni(i) {
+                return (Math.trunc(i/4)+1).toString().padStart(2,"0") + c[i % 4];
+            }
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function init(){
+                cardP = []; cardA = []; cardT = []; cardB = 48;
+                scorePlayer = []; scoreAI = [];
+                for (i=0;i<4;i++){k=i*6;
+                    cardP.push(rnd[k],rnd[k+1]);
+                    cardT.push(rnd[k+2],rnd[k+3]);
+                    cardA.push(rnd[k+4],rnd[k+5]);
+                }
+                stack = 24;
+            }
+            function roll(){ 
+                for (i=0;i<48;i++) rnd[i]=i;
+                shuffleArray(rnd);
+            }
+
+            function tableMatch(i){
+                t=0; bmonth = parseInt(i/4)
+                cardT.forEach(function(d){if (parseInt(d/4) == bmonth) t++;})
+                return (t>0) ? true:false;
+            }
+
+            function match(i,j){
+                // setTimeout(sleep,1000)
+                app.message += ("\n是真的！")
+                scorePlayer.push(cardP[i])
+                cardP.splice(i,1)
+                scorePlayer.push(cardT[j])
+                cardT.splice(j,1)
+                
+                cardB = rnd[stack];
+                stack++;
+                if (tableMatch(cardB)) {this.selFirst = cardB; event = "player_re"; console.log("Bonus")}
+                    else {cardT.push(cardB); cardB=48; app.cB = cardB; app.cT = cardT; exam_player()}
+                app.cB = cardB; app.cT = cardT;
+            }
+
+            function reMatch(j) {
+                app.message += ("\n还是真的！")
+                scorePlayer.push(cardT[j])
+                cardT.splice(j,1)
+                scorePlayer.push(cardB); cardB = 48;
+                app.cB = cardB; app.cT = cardT; app.sP = scorePlayer;
+                selFirst = null; event = null;
+                exam_player()
+            }
+
+            function put(i) {
+                cardT.push(cardP[i])
+                cardP.splice(i,1)
+                cardB = rnd[stack];
+                stack++;
+                if (tableMatch(cardB)) {this.selFirst = cardB; event = "player_re"; console.log("Bonus")}
+                    else {cardT.push(cardB); cardB=48; app.cB = cardB; app.cT = cardT; exam_player()}
+                app.cB = cardB; app.cT = cardT; app.cP = cardP;
+            }
+
+            const wintypes= {0: {"name":"光牌","cards":[0,8,28,40,44],"min":3,"point":10,"bp":5}, 
+                             1: {"name":"粕牌","cards":[2,3,6,7,10,11,14,15,18,19,22,23,26,27,30,31,32,34,35,38,39,43,45,46,47],"min":8,"point":1,"bp":1}}
+
+            function wins(t) {
+                target = wintypes[t]["cards"];
+                ans = 0;
+                scorePlayer.forEach(function(d){if (target.indexOf(d) != -1) ans++;})
+                return ans;
+            }    
+
+            function exam_player(){
+                app.message += ("\nYou have " + scorePlayer)
+                points = 0;
+                for (i=0; i<2; i++) {
+                    k = wins(i);
+                    if (k >= wintypes[i]["min"]) {
+                        // app.message += "\nYou are with " + wintypes[i]["name"] + " of " + k + "."
+                        points = points + (parseInt(wintypes[i]["point"]) + (k-parseInt(wintypes[i]["min"])) * parseInt(wintypes[i]["bp"]));
+                        console.log(points)
+                    }
+                }
+                if (points!=0) app.message += ("\nCurrently with " + points + " points, now continue...")
+                if (cardP.length == 0) app.message += ("\nAll set with " + scorePlayer.length + " cards. Please restart.")
+                    else app.message += ("\nNext turn...")
+            }
+
+            rnd = new Array(48); stack = new Array(48); 
+            uni = new Array(50); urls = new Array(50); c = "shdc"
+            cardP = new Array(8); cardA = new Array(8); cardT = new Array(8); cardB = 48;
+            scorePlayer = []; scoreAI = [];
+            selFirst = null; selSecond = null; posFirst = null; posSecond = null;
+            stack = 24;
+            event = null;
+
+            for (i=0;i<48;i++) {
+                uni[i] = ind_uni(i)
+                urls[i] = ("lib/kintengu/Kintengu_" + uni[i] +".png");
+            }
+            urls[48] = ("lib/kintengu/Kintengu_00c.png");
+            roll();
+            init();
+
+            var app = new Vue({
+                el: '#table',
+                data: {
+                    message: "Roll = " + rnd,
+                    cP: cardP, cT: cardT, cA: cardA, sP: scorePlayer, cB: cardB,
+                    urls: urls
+                },
+                methods: {
+                    reStart: function(){
+                        roll();
+                        init();
+                        this.message = "Roll = " + rnd;
+                        this.cP = cardP, this.cT = cardT, this.cA = cardA, this.cB = cardB, this.sP = scorePlayer; 
+                    },
+                    clickOnPlayer: function(i){
+                        event = "player";
+                        selFirst = this.cP[i]; posFirst = i;
+                        if (!tableMatch(selFirst)) put(posFirst);
+                    },
+                    clickOnAI: function(i){
+                    },
+                    clickOnTable: function(i){
+                        selSecond = this.cT[i];
+                        if (parseInt(selFirst / 4) == parseInt(selSecond / 4)) {
+                            if (event == "player") match(posFirst,i);
+                                else if (event == "player_re") reMatch(i)
+                        } else if (event != "player_re") selFirst = null; 
+                        selSecond = null; posFirst = null; posSecond = null;
+                    },
+                    clickOnPoints: function(i){
+                        this.message += "\nClick-on No. " + this.sP[i] + " / " + ind_uni(this.sP[i])
+                    },
+                }
+            })
+        </script>
+    </body>
+</html>
